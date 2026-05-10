@@ -1,0 +1,2697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI伴读 - 英语阅读助手</title>
+    <style>
+        :root {
+            --primary: #F59E0B;
+            --primary-light: #FCD34D;
+            --primary-dark: #D97706;
+            --secondary: #8B5CF6;
+            --bg-light: #FFFBF5;
+            --bg-card: #FFFFFF;
+            --text-dark: #1F2937;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --success: #10B981;
+            --error: #EF4444;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .header-title span {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .level-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .profile-btn {
+            background: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .profile-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            margin-top: 72px;
+            min-height: calc(100vh - 72px);
+        }
+
+        /* Reading Area */
+        .reading-area {
+            flex: 1;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            padding-right: 420px;
+            transition: padding-right 0.3s;
+        }
+
+        .reading-area.panel-open {
+            padding-right: 420px;
+        }
+
+        .reading-area.panel-closed {
+            padding-right: 2rem;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-bottom: 2rem;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Article Card */
+        .article-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .article-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .article-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .article-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Audio Controls */
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            border-radius: 12px;
+        }
+
+        .play-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: all 0.2s;
+            box-shadow: var(--shadow);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .play-btn.playing {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 0 15px rgba(245, 158, 11, 0); }
+        }
+
+        .audio-info {
+            flex: 1;
+        }
+
+        .audio-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .speed-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .speed-btn {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .speed-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Article Content */
+        .article-content {
+            font-size: 1.1rem;
+            line-height: 2;
+            color: var(--text-dark);
+        }
+
+        .sentence {
+            display: inline;
+            padding: 0.15rem 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .sentence:hover {
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .sentence.active {
+            background: rgba(245, 158, 11, 0.25);
+        }
+
+        .sentence.reading {
+            background: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        }
+
+        .vocab-word {
+            border-bottom: 2px solid var(--primary);
+            position: relative;
+        }
+
+        .vocab-word:hover {
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-dark);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: var(--text-dark);
+        }
+
+        .vocab-word:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+            bottom: calc(100% + 10px);
+        }
+
+        .tooltip-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-word {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .tooltip-pos {
+            background: var(--primary);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+
+        .tooltip-phonetic {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8rem;
+        }
+
+        .tooltip-meaning {
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-example {
+            font-style: italic;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.8rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 0.5rem;
+        }
+
+        /* Complete Reading Button */
+        .complete-reading-btn {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            margin-top: 2rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+
+        .complete-reading-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* AI Companion Panel */
+        .companion-panel {
+            position: fixed;
+            top: 72px;
+            right: 0;
+            width: 400px;
+            height: calc(100vh - 72px);
+            background: var(--bg-card);
+            box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .companion-panel.open {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            padding: 1.25rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: none;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-muted);
+            position: relative;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Tab 1: Word Lookup */
+        .word-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .word-item {
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.2s;
+        }
+
+        .word-item:hover {
+            background: #FEF3C7;
+        }
+
+        .word-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .word-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .word-pos {
+            background: var(--secondary);
+            color: white;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+
+        .word-phonetic {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .word-context {
+            color: var(--primary-dark);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .word-context mark {
+            background: var(--primary-light);
+            padding: 0.1rem 0.25rem;
+            border-radius: 3px;
+        }
+
+        /* Tab 2: Sentence Analysis */
+        .analysis-visual {
+            background: var(--bg-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .sentence-structure {
+            font-size: 1rem;
+            line-height: 2.5;
+            text-align: center;
+            flex-wrap: wrap;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .word-tag {
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+            position: relative;
+            display: inline-block;
+        }
+
+        .word-tag.subject { background: #DBEAFE; color: #1E40AF; }
+        .word-tag.predicate { background: #FEE2E2; color: #991B1B; }
+        .word-tag.object { background: #D1FAE5; color: #065F46; }
+        .word-tag.attribute { background: #E9D5FF; color: #6B21A8; }
+        .word-tag.adverbial { background: #FEF3C7; color: #92400E; }
+        .word-tag.complement { background: #CFFAFE; color: #0E7490; }
+
+        .relation-arrow {
+            color: var(--text-muted);
+            font-size: 1.25rem;
+        }
+
+        .analysis-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+        }
+
+        .analysis-text {
+            padding: 1rem;
+            background: #F3F4F6;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .analysis-text h4 {
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Tab 3: AI Q&A */
+        .preset-questions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .question-btn {
+            padding: 0.75rem 1rem;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            text-align: left;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dark);
+        }
+
+        .question-btn:hover {
+            background: #FEF3C7;
+            border-color: var(--primary);
+        }
+
+        .chat-area {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 200px;
+            margin-bottom: 1rem;
+        }
+
+        .chat-message {
+            margin-bottom: 1rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-message.ai {
+            text-align: left;
+        }
+
+        .chat-message.user {
+            text-align: right;
+        }
+
+        .chat-bubble {
+            display: inline-block;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            max-width: 100%;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .chat-message.ai .chat-bubble {
+            background: white;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-message.user .chat-bubble {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 0.25rem;
+            padding: 0.5rem;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .input-area {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-area input:focus {
+            border-color: var(--primary);
+        }
+
+        .send-btn {
+            padding: 0.75rem 1.25rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Tab 4: Translation */
+        .translation-warning {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .translation-warning .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .translation-warning p {
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+        }
+
+        .translation-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--bg-light);
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-muted);
+        }
+
+        .translation-toggle:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .translation-content {
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            margin-top: 1rem;
+            font-size: 1rem;
+            line-height: 1.8;
+            display: none;
+            border: 1px solid var(--border);
+        }
+
+        .translation-content.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* AI Notification */
+        .ai-notification {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            z-index: 200;
+            max-width: 400px;
+            opacity: 0;
+            transition: all 0.4s ease;
+            border-left: 4px solid var(--primary);
+        }
+
+        .ai-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        .notification-body {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .notification-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .notification-btn.primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .notification-btn.secondary {
+            background: var(--bg-light);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        /* Quiz Mode */
+        .quiz-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .quiz-overlay.show {
+            display: flex;
+        }
+
+        .quiz-card {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: scaleIn 0.3s ease;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .quiz-header h2 {
+            font-size: 1.5rem;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .quiz-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .quiz-progress {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .quiz-progress-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+
+        .quiz-progress-dot.active {
+            background: var(--primary);
+        }
+
+        .quiz-progress-dot.correct {
+            background: var(--success);
+        }
+
+        .quiz-progress-dot.wrong {
+            background: var(--error);
+        }
+
+        .question-card {
+            margin-bottom: 1.5rem;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .option {
+            padding: 1rem;
+            background: var(--bg-light);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .option:hover:not(.disabled) {
+            border-color: var(--primary);
+            background: #FEF3C7;
+        }
+
+        .option.selected {
+            border-color: var(--primary);
+            background: #FEF3C7;
+        }
+
+        .option.correct {
+            border-color: var(--success);
+            background: #D1FAE5;
+        }
+
+        .option.wrong {
+            border-color: var(--error);
+            background: #FEE2E2;
+        }
+
+        .option.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .feedback {
+            padding: 1rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .feedback.correct {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .feedback.wrong {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .translation-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .translation-input:focus {
+            border-color: var(--primary);
+        }
+
+        .quiz-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .quiz-btn {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quiz-btn.primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .quiz-btn.primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .quiz-btn.secondary {
+            background: var(--bg-light);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        /* Report Mode */
+        .report-card {
+            text-align: center;
+        }
+
+        .report-score {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .score-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(var(--primary) 0%, var(--primary) calc(var(--score) * 1%), var(--border) calc(var(--score) * 1%), var(--border) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-inner {
+            width: 90px;
+            height: 90px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .report-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Radar Chart */
+        .radar-container {
+            margin: 2rem auto;
+            max-width: 300px;
+        }
+
+        .radar-chart {
+            width: 100%;
+        }
+
+        .report-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-item {
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .weakness-analysis {
+            text-align: left;
+            padding: 1rem;
+            background: #FEF3C7;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .weakness-analysis h4 {
+            color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .weakness-analysis p {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .timeline {
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        .timeline h4 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .timeline-time {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            width: 50px;
+        }
+
+        .timeline-content {
+            font-size: 0.9rem;
+        }
+
+        /* Profile Modal */
+        .profile-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 400;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .profile-modal.show {
+            display: flex;
+        }
+
+        .profile-content {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            animation: scaleIn 0.3s ease;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .profile-info h3 {
+            font-size: 1.25rem;
+        }
+
+        .profile-info p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .week-chart {
+            margin: 1.5rem 0;
+        }
+
+        .week-chart h4 {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .week-bars {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 100px;
+            gap: 0.5rem;
+        }
+
+        .day-bar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .bar {
+            width: 100%;
+            background: var(--border);
+            border-radius: 4px;
+            transition: height 0.3s;
+        }
+
+        .bar.active {
+            background: var(--primary);
+        }
+
+        .day-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .streak-info {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .streak-item {
+            text-align: center;
+        }
+
+        .streak-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .streak-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .close-profile {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-light);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+            transition: background 0.2s;
+        }
+
+        .close-profile:hover {
+            background: var(--border);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 900px) {
+            .reading-area {
+                padding-right: 2rem;
+            }
+
+            .companion-panel {
+                width: 100%;
+                height: 70vh;
+                top: auto;
+                bottom: 0;
+                transform: translateY(100%);
+                border-radius: 24px 24px 0 0;
+            }
+
+            .companion-panel.open {
+                transform: translateY(0);
+            }
+
+            .reading-area.panel-open {
+                padding-right: 2rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                padding: 0.75rem 1rem;
+            }
+
+            .header-title h1 {
+                font-size: 1rem;
+            }
+
+            .reading-area {
+                padding: 1rem;
+            }
+
+            .article-card {
+                padding: 1.25rem;
+            }
+
+            .article-title {
+                font-size: 1.35rem;
+            }
+
+            .article-content {
+                font-size: 1rem;
+            }
+
+            .audio-controls {
+                flex-wrap: wrap;
+            }
+
+            .speed-controls {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            .tab {
+                min-width: 70px;
+            }
+
+            .quiz-card {
+                padding: 1.25rem;
+            }
+
+            .report-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">📚</div>
+            <div class="header-title">
+                <h1>AI伴读</h1>
+                <span>智能英语阅读助手</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="level-badge">🌟 初中版</span>
+            <button class="profile-btn" onclick="showProfile()">👤</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Reading Area -->
+        <main class="reading-area panel-closed" id="readingArea">
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <div class="progress-info">
+                    <span>阅读进度</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Article Card -->
+            <div class="article-card">
+                <div class="article-header">
+                    <h2 class="article-title">GPT-5.5: AI Finally Stops "Making Things Up"</h2>
+                    <div class="article-meta">
+                        <span class="meta-item">📰 科技新闻</span>
+                        <span class="meta-item">⏱️ 5分钟</span>
+                        <span class="meta-item">📊 初中难度</span>
+                    </div>
+                </div>
+
+                <!-- Audio Controls -->
+                <div class="audio-controls">
+                    <button class="play-btn" id="playBtn" onclick="toggleAudio()">▶</button>
+                    <div class="audio-info">
+                        <div class="audio-label">点击播放原文朗读</div>
+                        <div class="speed-controls">
+                            <button class="speed-btn" data-speed="0.5" onclick="setSpeed(0.5)">0.5x</button>
+                            <button class="speed-btn" data-speed="0.75" onclick="setSpeed(0.75)">0.75x</button>
+                            <button class="speed-btn active" data-speed="1" onclick="setSpeed(1)">1x</button>
+                            <button class="speed-btn" data-speed="1.25" onclick="setSpeed(1.25)">1.25x</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Article Content -->
+                <div class="article-content" id="articleContent">
+                    <span class="sentence" data-sentence="1" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        <span class="vocab-word">OpenAI<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">OpenAI</span><span class="tooltip-pos">n.</span></div><div class="tooltip-phonetic">/ˌəʊpən ˈeɪ aɪ/</div><div class="tooltip-meaning">一个人工智能研究实验室和公司</div><div class="tooltip-example">例句：OpenAI released a new AI model.</div></span></span> has just 
+                        <span class="vocab-word">released<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">release</span><span class="tooltip-pos">v.</span></div><div class="tooltip-phonetic">/rɪˈliːs/</div><div class="tooltip-meaning">发布，发行</div><div class="tooltip-example">例句：The company released a new product.</div></span></span> 
+                        GPT-5.5, and this time, the AI is much smarter and more 
+                        <span class="vocab-word">reliable<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">reliable</span><span class="tooltip-pos">adj.</span></div><div class="tooltip-phonetic">/rɪˈlaɪəbl/</div><div class="tooltip-meaning">可靠的，值得信赖的</div><div class="tooltip-example">例句：This is a reliable source of information.</div></span></span> than ever before.
+                    </span>
+                    
+                    <span class="sentence" data-sentence="2" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        <span class="vocab-word">What's New?</span>
+                    </span>
+                    
+                    <span class="sentence" data-sentence="3" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        The biggest 
+                        <span class="vocab-word">improvement<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">improvement</span><span class="tooltip-pos">n.</span></div><div class="tooltip-phonetic">/ɪmˈpruːvmənt/</div><div class="tooltip-meaning">改进，改善</div><div class="tooltip-example">例句：This is a major improvement in the system.</div></span></span> is that GPT-5.5 makes 52.5% fewer mistakes.
+                    </span>
+                    
+                    <span class="sentence" data-sentence="4" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        In the past, AI sometimes "
+                        <span class="vocab-word">hallucinated<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">hallucinate</span><span class="tooltip-pos">v.</span></div><div class="tooltip-phonetic">/həˌluːsɪˈneɪʃən/</div><div class="tooltip-meaning">产生幻觉（AI术语：编造虚假信息）</div><div class="tooltip-example">例句：AI sometimes causes hallucinations.</div></span></span>
+                        " - it would 
+                        <span class="vocab-word">confidently<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">confidently</span><span class="tooltip-pos">adv.</span></div><div class="tooltip-phonetic">/ˈkɒnfɪdəntli/</div><div class="tooltip-meaning">自信地</div><div class="tooltip-example">例句：She confidently answered the question.</div></span></span> tell you wrong information that sounded completely true.
+                    </span>
+                    
+                    <span class="sentence" data-sentence="5" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        This was a big problem, 
+                        <span class="vocab-word">especially<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">especially</span><span class="tooltip-pos">adv.</span></div><div class="tooltip-phonetic">/ɪˈspeʃəli/</div><div class="tooltip-meaning">尤其，特别</div><div class="tooltip-example">例句：I love all fruits, especially apples.</div></span></span> for students and professionals who needed 
+                        <span class="vocab-word">accurate<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">accurate</span><span class="tooltip-pos">adj.</span></div><div class="tooltip-phonetic">/ˈækjərət/</div><div class="tooltip-meaning">准确的，精确的</div><div class="tooltip-example">例句：Please provide accurate information.</div></span></span> answers.
+                    </span>
+                    
+                    <span class="sentence" data-sentence="6" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        Now, GPT-5.5 can 
+                        <span class="vocab-word">process<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">process</span><span class="tooltip-pos">v.</span></div><div class="tooltip-phonetic">/ˈprəʊses/</div><div class="tooltip-meaning">处理，加工</div><div class="tooltip-example">例句：The computer can process data fast.</div></span></span> and understand a one-million-word text in one go.
+                    </span>
+                    
+                    <span class="sentence" data-sentence="7" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        Imagine 
+                        <span class="vocab-word">reading<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">reading</span><span class="tooltip-pos">n.</span></div><div class="tooltip-phonetic">/ˈriːdɪŋ/</div><div class="tooltip-meaning">阅读；读物</div><div class="tooltip-example">例句：This is a great reading for beginners.</div></span></span> 10 complete Harry Potter books at once!
+                    </span>
+                    
+                    <span class="sentence" data-sentence="8" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        This makes it 
+                        <span class="vocab-word">perfect<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">perfect</span><span class="tooltip-pos">adj.</span></div><div class="tooltip-phonetic">/ˈpɜːfɪkt/</div><div class="tooltip-meaning">完美的</div><div class="tooltip-example">例句：This is the perfect solution.</div></span></span> for 
+                        <span class="vocab-word">analyzing<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">analyze</span><span class="tooltip-pos">v.</span></div><div class="tooltip-phonetic">/ˈænəlaɪz/</div><div class="tooltip-meaning">分析</div><div class="tooltip-example">例句：We need to analyze the data carefully.</div></span></span> long documents, 
+                        <span class="vocab-word">writing<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">write</span><span class="tooltip-pos">v.</span></div><div class="tooltip-phonetic">/raɪt/</div><div class="tooltip-meaning">写作，编写</div><div class="tooltip-example">例句：She is writing a novel.</div></span></span> code, or helping with 
+                        <span class="vocab-word">complex<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">complex</span><span class="tooltip-pos">adj.</span></div><div class="tooltip-phonetic">/ˈkɒmpleks/</div><div class="tooltip-meaning">复杂的</div><div class="tooltip-example">例句：This is a complex problem to solve.</div></span></span> research.
+                    </span>
+                    
+                    <span class="sentence" data-sentence="9" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        <span class="vocab-word">Two<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">two</span><span class="tooltip-pos">num.</span></div><div class="tooltip-phonetic">/tuː/</div><div class="tooltip-meaning">两个</div><div class="tooltip-example">例句：I have two brothers.</div></span></span> 
+                        <span class="vocab-word">Versions<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">version</span><span class="tooltip-pos">n.</span></div><div class="tooltip-phonetic">/ˈvɜːʃən/</div><div class="tooltip-meaning">版本</div><div class="tooltip-example">例句：Download the latest version.</div></span></span> for Different Needs
+                    </span>
+                    
+                    <span class="sentence" data-sentence="10" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        GPT-5.5 comes in two versions: GPT-5.5 Ultra for 
+                        <span class="vocab-word">difficult<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">difficult</span><span class="tooltip-pos">adj.</span></div><div class="tooltip-phonetic">/ˈdɪfɪkəlt/</div><div class="tooltip-meaning">困难的</div><div class="tooltip-example">例句：This is a difficult question.</div></span></span> tasks like 
+                        <span class="vocab-word">solving<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">solve</span><span class="tooltip-pos">v.</span></div><div class="tooltip-phonetic">/sɒlv/</div><div class="tooltip-meaning">解决</div><div class="tooltip-example">例句：Can you solve this math problem?</div></span></span> math problems and GPT-5.5 Instant for 
+                        <span class="vocab-word">quick<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">quick</span><span class="tooltip-pos">adj.</span></div><div class="tooltip-phonetic">/kwɪk/</div><div class="tooltip-meaning">快速的</div><div class="tooltip-example">例句：This is a quick answer.</div></span></span> answers.
+                    </span>
+                    
+                    <span class="sentence" data-sentence="11" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        Schools around the world are 
+                        <span class="vocab-word">excited<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">excited</span><span class="tooltip-pos">adj.</span></div><div class="tooltip-phonetic">/ɪkˈsaɪtɪd/</div><div class="tooltip-meaning">兴奋的，激动的</div><div class="tooltip-example">例句：The students are excited about the trip.</div></span></span> about this new technology.
+                    </span>
+                    
+                    <span class="sentence" data-sentence="12" onmouseenter="startHoverTimer(this)" onmouseleave="cancelHoverTimer()">
+                        Teachers can use it to create better 
+                        <span class="vocab-word">learning<span class="tooltip"><div class="tooltip-header"><span class="tooltip-word">learning</span><span class="tooltip-pos">n.</span></div><div class="tooltip-phonetic">/ˈlɜːnɪŋ/</div><div class="tooltip-meaning">学习</div><div class="tooltip-example">例句：Learning is a lifelong process.</div></span></span> materials, and students can get help with their homework without worrying about wrong answers.
+                    </span>
+                </div>
+
+                <button class="complete-reading-btn" onclick="startQuiz()">✅ 完成阅读，进入练习</button>
+            </div>
+        </main>
+
+        <!-- AI Companion Panel -->
+        <aside class="companion-panel" id="companionPanel">
+            <div class="panel-header">
+                <span class="panel-title">📖 AI伴读助手</span>
+                <button class="close-btn" onclick="closePanel()">×</button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" data-tab="words">智能查词</button>
+                <button class="tab" data-tab="analysis">句法分析</button>
+                <button class="tab" data-tab="qa">AI答疑</button>
+                <button class="tab" data-tab="translation">译文</button>
+            </div>
+
+            <div class="tab-content">
+                <!-- Tab 1: Word Lookup -->
+                <div class="tab-pane active" id="tab-words">
+                    <div class="word-list" id="wordList">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- Tab 2: Sentence Analysis -->
+                <div class="tab-pane" id="tab-analysis">
+                    <div class="analysis-visual">
+                        <div class="sentence-structure" id="sentenceStructure">
+                            <!-- Dynamic visualization -->
+                        </div>
+                        <div class="analysis-legend">
+                            <div class="legend-item"><span class="legend-dot" style="background:#DBEAFE"></span>主语</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:#FEE2E2"></span>谓语</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:#D1FAE5"></span>宾语</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:#E9D5FF"></span>定语</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:#FEF3C7"></span>状语</div>
+                        </div>
+                    </div>
+                    <div class="analysis-text" id="analysisText">
+                        <!-- Dynamic analysis -->
+                    </div>
+                </div>
+
+                <!-- Tab 3: AI Q&A -->
+                <div class="tab-pane" id="tab-qa">
+                    <div class="preset-questions" id="presetQuestions">
+                        <!-- Dynamic buttons -->
+                    </div>
+                    <div class="chat-area" id="chatArea">
+                        <div class="chat-message ai">
+                            <div class="chat-bubble">有什么不懂的可以问我哦！我会帮你详细解答~</div>
+                        </div>
+                    </div>
+                    <div class="input-area">
+                        <input type="text" placeholder="输入你的问题..." id="qaInput" onkeypress="handleQAKeypress(event)">
+                        <button class="send-btn" onclick="sendQuestion()">发送</button>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Translation -->
+                <div class="tab-pane" id="tab-translation">
+                    <div class="translation-warning">
+                        <div class="icon">💡</div>
+                        <p>建议先尝试自己理解，再查看译文</p>
+                    </div>
+                    <div class="translation-toggle" onclick="toggleTranslation()">
+                        <span>👁️</span>
+                        <span>显示中文翻译</span>
+                    </div>
+                    <div class="translation-content" id="translationContent">
+                        <!-- Dynamic translation -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- AI Notification -->
+    <div class="ai-notification" id="aiNotification">
+        <div class="notification-header">
+            <span>📖</span>
+            <span>AI智能提示</span>
+        </div>
+        <div class="notification-body" id="notificationBody"></div>
+        <div class="notification-actions" id="notificationActions"></div>
+    </div>
+
+    <!-- Quiz Overlay -->
+    <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-card" id="quizCard">
+            <!-- Dynamic quiz content -->
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="profile-modal" id="profileModal">
+        <div class="profile-content">
+            <div class="profile-header">
+                <div class="profile-avatar">🤓</div>
+                <div class="profile-info">
+                    <h3>英语学习者</h3>
+                    <p>已坚持学习 7 天</p>
+                </div>
+            </div>
+            <div class="week-chart">
+                <h4>📈 本周学习趋势</h4>
+                <div class="week-bars">
+                    <div class="day-bar">
+                        <div class="bar active" style="height: 60px"></div>
+                        <span class="day-label">周一</span>
+                    </div>
+                    <div class="day-bar">
+                        <div class="bar active" style="height: 45px"></div>
+                        <span class="day-label">周二</span>
+                    </div>
+                    <div class="day-bar">
+                        <div class="bar" style="height: 20px"></div>
+                        <span class="day-label">周三</span>
+                    </div>
+                    <div class="day-bar">
+                        <div class="bar active" style="height: 75px"></div>
+                        <span class="day-label">周四</span>
+                    </div>
+                    <div class="day-bar">
+                        <div class="bar active" style="height: 55px"></div>
+                        <span class="day-label">周五</span>
+                    </div>
+                    <div class="day-bar">
+                        <div class="bar active" style="height: 80px"></div>
+                        <span class="day-label">周六</span>
+                    </div>
+                    <div class="day-bar">
+                        <div class="bar active" style="height: 40px"></div>
+                        <span class="day-label">周日</span>
+                    </div>
+                </div>
+            </div>
+            <div class="streak-info">
+                <div class="streak-item">
+                    <div class="streak-value">7</div>
+                    <div class="streak-label">连续学习天数</div>
+                </div>
+                <div class="streak-item">
+                    <div class="streak-value">45</div>
+                    <div class="streak-label">本周学习分钟</div>
+                </div>
+                <div class="streak-item">
+                    <div class="streak-value">12</div>
+                    <div class="streak-label">已学文章数</div>
+                </div>
+            </div>
+            <button class="close-profile" onclick="closeProfile()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        // ============ Data ============
+        const articleData = {
+            title: "GPT-5.5: AI Finally Stops 'Making Things Up'",
+            sentences: [
+                {
+                    id: 1,
+                    text: "OpenAI has just released GPT-5.5, and this time, the AI is much smarter and more reliable than ever before.",
+                    words: [
+                        { word: "OpenAI", pos: "n.", phonetic: "/ˌəʊpən ˈeɪ aɪ/", meaning: "一个人工智能研究实验室和公司", context: "OpenAI 是世界知名的人工智能研究机构" },
+                        { word: "release", pos: "v.", phonetic: "/rɪˈliːs/", meaning: "发布，发行", context: "release 在这里是「发布」的意思" },
+                        { word: "reliable", pos: "adj.", phonetic: "/rɪˈlaɪəbl/", meaning: "可靠的，值得信赖的", context: "reliable 形容 AI 变得更加可靠" }
+                    ],
+                    structure: [
+                        { text: "OpenAI", role: "subject" },
+                        { text: "has just released", role: "predicate" },
+                        { text: "GPT-5.5", role: "object" },
+                        { text: "and this time, the AI is much smarter and more reliable than ever before", role: "adverbial" }
+                    ],
+                    analysis: "本句是一个复合句。主语是「OpenAI」，谓语是「has released」，宾语是「GPT-5.5」。后半部分是并列的时间状语从句「and this time...」，其中包含形容词比较级「smarter and more reliable」。",
+                    translation: "OpenAI刚刚发布了GPT-5.5，这一次，人工智能比以往任何时候都更智能、更可靠。"
+                },
+                {
+                    id: 2,
+                    text: "What's New?",
+                    words: [],
+                    structure: [],
+                    analysis: "这是一个省略句，用于引出新内容。在标题或问句中常用这种简洁表达。",
+                    translation: "有什么新变化？"
+                },
+                {
+                    id: 3,
+                    text: "The biggest improvement is that GPT-5.5 makes 52.5% fewer mistakes.",
+                    words: [
+                        { word: "improvement", pos: "n.", phonetic: "/ɪmˈpruːvmənt/", meaning: "改进，改善", context: "improvement 来自 improve（改进）+ -ment（名词后缀）" },
+                        { word: "significant", pos: "adj.", phonetic: "/sɪɡˈnɪfɪkənt/", meaning: "重要的，显著的", context: "这个句子暗示了改进的显著性" }
+                    ],
+                    structure: [
+                        { text: "The biggest improvement", role: "subject" },
+                        { text: "is", role: "predicate" },
+                        { text: "that GPT-5.5 makes 52.5% fewer mistakes", role: "complement" }
+                    ],
+                    analysis: "这是一个表语从句。主语是「The biggest improvement」，系动词是「is」，后面是that引导的表语从句。52.5% fewer mistakes使用了形容词比较级结构，表示减少了52.5%的错误。",
+                    translation: "最大的改进是GPT-5.5的错误减少了52.5%。"
+                },
+                {
+                    id: 4,
+                    text: "In the past, AI sometimes \"hallucinated\" - it would confidently tell you wrong information that sounded completely true.",
+                    words: [
+                        { word: "hallucinate", pos: "v.", phonetic: "/həˌluːsɪˈneɪʃən/", meaning: "产生幻觉（AI术语：编造虚假信息）", context: "这是AI领域的专有名词，指AI生成看似真实但实际错误的内容" },
+                        { word: "confidently", pos: "adv.", phonetic: "/ˈkɒnfɪdəntli/", meaning: "自信地，确信地", context: "confidently 描述AI「自信地」给出错误信息" }
+                    ],
+                    structure: [
+                        { text: "In the past", role: "adverbial" },
+                        { text: "AI", role: "subject" },
+                        { text: "sometimes hallucinated", role: "predicate" },
+                        { text: "it would confidently tell you wrong information that sounded completely true", role: "object" }
+                    ],
+                    analysis: "本句包含一个定语从句。主句描述过去AI的问题，破折号后详细说明。定语从句「that sounded completely true」修饰前面的「wrong information」，说明这些错误信息听起来完全真实。",
+                    translation: "过去，人工智能有时会「产生幻觉」——它会自信地告诉你听起来完全正确但实际上是错误的信息。"
+                },
+                {
+                    id: 5,
+                    text: "This was a big problem, especially for students and professionals who needed accurate answers.",
+                    words: [
+                        { word: "especially", pos: "adv.", phonetic: "/ɪˈspeʃəli/", meaning: "尤其，特别", context: "especially 强调对学生和专业人员的特别影响" }
+                    ],
+                    structure: [
+                        { text: "This", role: "subject" },
+                        { text: "was", role: "predicate" },
+                        { text: "a big problem", role: "object" },
+                        { text: "especially for students and professionals who needed accurate answers", role: "attribute" }
+                    ],
+                    analysis: "本句含有定语从句。who needed accurate answers修饰前面的students and professionals。especially作状语强调这部分人群受影响最大。",
+                    translation: "这对学生和需要准确答案的专业人士来说是个大问题。"
+                },
+                {
+                    id: 6,
+                    text: "Now, GPT-5.5 can process and understand a one-million-word text in one go.",
+                    words: [
+                        { word: "process", pos: "v.", phonetic: "/ˈprəʊses/", meaning: "处理，加工", context: "process 在这里指AI「处理」大量文本" },
+                        { word: "entire", pos: "adj.", phonetic: "/ɪnˈtaɪə/", meaning: "整个的，全部的", context: "one-million-word 形容文本的规模" }
+                    ],
+                    structure: [
+                        { text: "Now", role: "adverbial" },
+                        { text: "GPT-5.5", role: "subject" },
+                        { text: "can process and understand", role: "predicate" },
+                        { text: "a one-million-word text", role: "object" },
+                        { text: "in one go", role: "adverbial" }
+                    ],
+                    analysis: "本句使用情态动词can。process和understand是并列谓语。in one go是介词短语作状语，表示「一次完成」。",
+                    translation: "现在，GPT-5.5可以一次阅读并理解一百万字的文本。"
+                },
+                {
+                    id: 7,
+                    text: "Imagine reading 10 complete Harry Potter books at once!",
+                    words: [
+                        { word: "entire", pos: "adj.", phonetic: "/ɪnˈtaɪə/", meaning: "整个的", context: "complete 形容Harry Potter书籍的完整性" }
+                    ],
+                    structure: [
+                        { text: "Imagine", role: "predicate" },
+                        { text: "reading 10 complete Harry Potter books", role: "object" },
+                        { text: "at once", role: "adverbial" }
+                    ],
+                    analysis: "这是一个祈使句。Imagine后接动名词短语reading作宾语。这是一个形象的比喻，帮助读者理解GPT-5.5处理长文本的能力。",
+                    translation: "想象一下，一次读完10本完整的《哈利·波特》！"
+                },
+                {
+                    id: 8,
+                    text: "This makes it perfect for analyzing long documents, writing code, or helping with complex research.",
+                    words: [
+                        { word: "perfect", pos: "adj.", phonetic: "/ˈpɜːfɪkt/", meaning: "完美的，理想的", context: "perfect for 表示「适合做某事」" },
+                        { word: "analyze", pos: "v.", phonetic: "/ˈænəlaɪz/", meaning: "分析", context: "动名词短语作宾语的一部分" },
+                        { word: "complex", pos: "adj.", phonetic: "/ˈkɒmpleks/", meaning: "复杂的", context: "complex research 指复杂的研究工作" }
+                    ],
+                    structure: [
+                        { text: "This", role: "subject" },
+                        { text: "makes it perfect", role: "predicate" },
+                        { text: "for analyzing long documents, writing code, or helping with complex research", role: "attribute" }
+                    ],
+                    analysis: "本句使用make + 宾语 + 宾补结构。it是形式宾语，真正的宾语是后面的动名词短语。动名词短语作宾语是本句的语法亮点。",
+                    translation: "这使其成为分析长文档、编写代码或帮助进行复杂研究的完美工具。"
+                },
+                {
+                    id: 9,
+                    text: "Two Versions for Different Needs",
+                    words: [
+                        { word: "version", pos: "n.", phonetic: "/ˈvɜːʃən/", meaning: "版本", context: "两个版本的区别在于适用场景" }
+                    ],
+                    structure: [
+                        { text: "Two Versions", role: "subject" },
+                        { text: "for Different Needs", role: "attribute" }
+                    ],
+                    analysis: "这是一个名词短语构成的标题。介词短语for Different Needs作定语修饰Versions。",
+                    translation: "两个版本，满足不同需求"
+                },
+                {
+                    id: 10,
+                    text: "GPT-5.5 comes in two versions: GPT-5.5 Ultra for difficult tasks like solving math problems and GPT-5.5 Instant for quick answers.",
+                    words: [
+                        { word: "version", pos: "n.", phonetic: "/ˈvɜːʃən/", meaning: "版本", context: "两种不同版本的具体介绍" },
+                        { word: "adopt", pos: "v.", phonetic: "/əˈdɒpt/", meaning: "采用，使用", context: "这个版本被广泛采用" }
+                    ],
+                    structure: [
+                        { text: "GPT-5.5", role: "subject" },
+                        { text: "comes in two versions", role: "predicate" },
+                        { text: "GPT-5.5 Ultra for difficult tasks like solving math problems", role: "object" },
+                        { text: "GPT-5.5 Instant for quick answers", role: "object" }
+                    ],
+                    analysis: "本句冒号后详细说明两个版本。like solving math problems是介词短语作定语，修饰tasks。现在分词短语作定语是本句的语法特点。",
+                    translation: "GPT-5.5有两个版本：GPT-5.5 Ultra用于解决数学问题等困难任务，GPT-5.5 Instant用于快速回答。"
+                },
+                {
+                    id: 11,
+                    text: "Schools around the world are excited about this new technology.",
+                    words: [
+                        { word: "available", pos: "adj.", phonetic: "/əˈveɪləbl/", meaning: "可用的，可获得的", context: "新技术在全球范围内可用" }
+                    ],
+                    structure: [
+                        { text: "Schools around the world", role: "subject" },
+                        { text: "are excited about", role: "predicate" },
+                        { text: "this new technology", role: "object" }
+                    ],
+                    analysis: "本句使用be excited about结构。around the world是介词短语作定语，修饰Schools。现在完成时表示状态持续。",
+                    translation: "世界各地的学校对这项新技术感到兴奋。"
+                },
+                {
+                    id: 12,
+                    text: "Teachers can use it to create better learning materials, and students can get help with their homework without worrying about wrong answers.",
+                    words: [
+                        { word: "reduce", pos: "v.", phonetic: "/rɪˈdjuːs/", meaning: "减少", context: "不用担心错误答案意味着减少错误" }
+                    ],
+                    structure: [
+                        { text: "Teachers", role: "subject" },
+                        { text: "can use", role: "predicate" },
+                        { text: "it to create better learning materials", role: "object" },
+                        { text: "students can get help with their homework without worrying about wrong answers", role: "adverbial" }
+                    ],
+                    analysis: "这是一个并列复合句。and连接两个并列分句，都使用情态动词can。without worrying是介词短语作状语，表示伴随情况。",
+                    translation: "教师可以用它来创建更好的学习材料，学生可以在做作业时得到帮助，而不必担心答案错误。"
+                }
+            ],
+            questions: [
+                {
+                    type: "choice",
+                    question: "What is the biggest improvement of GPT-5.5?",
+                    options: ["A. It can read faster", "B. It makes 52.5% fewer mistakes", "C. It can write code", "D. It has two versions"],
+                    correct: 1,
+                    explanation: "文中明确提到：「The biggest improvement is that GPT-5.5 makes 52.5% fewer mistakes.」（最大的改进是GPT-5.5的错误减少了52.5%。）"
+                },
+                {
+                    type: "choice",
+                    question: "What does \"hallucination\" mean in the context of AI?",
+                    options: ["A. AI dreaming", "B. AI giving wrong but confident information", "C. AI being creative", "D. AI refusing to answer"],
+                    correct: 1,
+                    explanation: "文中解释：「AI sometimes 'hallucinated' - it would confidently tell you wrong information that sounded completely true.」（人工智能有时会「产生幻觉」——它会自信地告诉你听起来完全正确但实际上是错误的信息。）"
+                },
+                {
+                    type: "choice",
+                    question: "How many words can GPT-5.5 process at once?",
+                    options: ["A. 100,000 words", "B. 500,000 words", "C. One million words", "D. Ten million words"],
+                    correct: 2,
+                    explanation: "文中提到：「GPT-5.5 can process and understand a one-million-word text in one go.」（GPT-5.5可以一次阅读并理解一百万字的文本。）"
+                },
+                {
+                    type: "translation",
+                    question: "请将以下句子翻译成中文：",
+                    sentence: "Imagine reading 10 complete Harry Potter books at once!",
+                    hint: "提示：想象一下，一次读完...",
+                    answer: "想象一下，一次读完10本完整的《哈利·波特》！"
+                }
+            ],
+            vocabWords: [
+                { word: "release", phonetic: "/rɪˈliːs/", pos: "v.", meaning: "发布", example: "The company released a new product." },
+                { word: "hallucination", phonetic: "/həˌluːsɪˈneɪʃən/", pos: "n.", meaning: "幻觉/AI编造", example: "AI sometimes causes hallucinations." },
+                { word: "context", phonetic: "/ˈkɒntekst/", pos: "n.", meaning: "上下文", example: "Understand the context first." },
+                { word: "reasoning", phonetic: "/ˈriːzənɪŋ/", pos: "n.", meaning: "推理", example: "AI uses reasoning to solve problems." },
+                { word: "significant", phonetic: "/sɪɡˈnɪfɪkənt/", pos: "adj.", meaning: "重要的", example: "This is a significant change." },
+                { word: "reduce", phonetic: "/rɪˈdjuːs/", pos: "v.", meaning: "减少", example: "We need to reduce waste." },
+                { word: "version", phonetic: "/ˈvɜːʃən/", pos: "n.", meaning: "版本", example: "Download the latest version." },
+                { word: "process", phonetic: "/ˈprəʊses/", pos: "v.", meaning: "处理", example: "The computer can process data fast." },
+                { word: "adopt", phonetic: "/əˈdɒpt/", pos: "v.", meaning: "采用", example: "Many schools adopt new technology." },
+                { word: "available", phonetic: "/əˈveɪləbl/", pos: "adj.", meaning: "可用的", example: "This feature is now available." },
+                { word: "entire", phonetic: "/ɪnˈtaɪə/", pos: "adj.", meaning: "整个的", example: "Read the entire article." },
+                { word: "complex", phonetic: "/ˈkɒmpleks/", pos: "adj.", meaning: "复杂的", example: "This is a complex problem." }
+            ]
+        };
+
+        const qaResponses = {
+            "这个句子为什么用过去式？": "这里使用过去式「was」是因为在描述GPT-5.5发布之前的情况，属于一般过去时，表示过去存在的状态。过去式用于介绍背景，说明这是之前存在的问题。",
+            "hallucinated在这里是什么意思？": "「hallucinated」原意是「产生幻觉」，但在AI领域这是一个专有名词，指AI模型会自信地生成看似真实但实际错误的内容，就像在「编造」信息一样。这就是所谓的「AI幻觉」问题。",
+            "confidently怎么用？": "「confidently」是副词，修饰动词，表示「自信地、确信地」。它来自形容词confident + 副词后缀-ly。例如：She confidently answered all questions.（她自信地回答了所有问题。）",
+            "这个句子用了什么语法？": "这个句子用了「形容词比较级」结构。「smarter and more reliable」是比较级形式，「than ever before」是比较的基准，表示比以前任何时候都更聪明、更可靠。",
+            "default": "这是一个很好的问题！让我来为你详细解释...这个语法点主要涉及到句子成分的分析和理解。如果你想深入了解，可以点击「句法分析」标签查看详细的结构拆解。"
+        };
+
+        // ============ State ============
+        let currentSentence = null;
+        let wordsLookedUp = new Set();
+        let sentencesAnalyzed = new Set();
+        let readProgress = 0;
+        let isPlaying = false;
+        let currentPlayingSentence = 0;
+        let audioSpeed = 1;
+        let hoverTimer = null;
+        let quizState = {
+            currentQuestion: 0,
+            answers: [],
+            showFeedback: false
+        };
+
+        // ============ Initialize ============
+        document.addEventListener('DOMContentLoaded', function() {
+            // Preload speech synthesis voices (some browsers load async)
+            if (window.speechSynthesis) {
+                window.speechSynthesis.getVoices();
+                window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+            }
+
+            // Set up tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+
+            // Set up sentence click handlers
+            document.querySelectorAll('.sentence').forEach(sentence => {
+                sentence.addEventListener('click', () => selectSentence(sentence));
+            });
+
+            // Show AI notification after 5 seconds
+            setTimeout(() => {
+                showAINotification(
+                    "📖 AI检测到你可能对 'hallucinated' 感到困惑，需要我帮你拆解这个句子吗？",
+                    [
+                        { text: "帮我拆解", action: () => analyzeHallucinatedSentence() },
+                        { text: "我懂了", action: () => hideNotification() }
+                    ]
+                );
+            }, 5000);
+        });
+
+        // ============ Tab Switching ============
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            
+            document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        // ============ Sentence Selection ============
+        function selectSentence(sentenceEl) {
+            const sentenceId = parseInt(sentenceEl.dataset.sentence);
+            const sentence = articleData.sentences.find(s => s.id === sentenceId);
+            
+            if (!sentence) return;
+
+            // Update UI
+            document.querySelectorAll('.sentence').forEach(s => s.classList.remove('active'));
+            sentenceEl.classList.add('active');
+
+            currentSentence = sentence;
+            openPanel();
+
+            // Update tab content
+            updateWordList(sentence);
+            updateSentenceStructure(sentence);
+            updateAnalysisText(sentence);
+            updateTranslation(sentence);
+            updatePresetQuestions(sentence);
+
+            // Update progress
+            if (!sentencesAnalyzed.has(sentenceId)) {
+                sentencesAnalyzed.add(sentenceId);
+                updateProgress();
+            }
+        }
+
+        // ============ Panel Control ============
+        function openPanel() {
+            document.getElementById('companionPanel').classList.add('open');
+            document.getElementById('readingArea').classList.remove('panel-closed');
+            document.getElementById('readingArea').classList.add('panel-open');
+        }
+
+        function closePanel() {
+            document.getElementById('companionPanel').classList.remove('open');
+            document.getElementById('readingArea').classList.remove('panel-open');
+            document.getElementById('readingArea').classList.add('panel-closed');
+            document.querySelectorAll('.sentence').forEach(s => s.classList.remove('active'));
+        }
+
+        // ============ Update Panel Content ============
+        function updateWordList(sentence) {
+            const wordList = document.getElementById('wordList');
+            
+            if (sentence.words.length === 0) {
+                wordList.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:2rem;">这个句子没有核心词汇</p>';
+                return;
+            }
+
+            // Highlight the current sentence text
+            const sentenceText = sentence.text;
+            
+            wordList.innerHTML = sentence.words.map(w => `
+                <div class="word-item">
+                    <div class="word-header">
+                        <span class="word-name">${w.word}</span>
+                        <span class="word-pos">${w.pos}</span>
+                        <span class="word-phonetic">${w.phonetic}</span>
+                    </div>
+                    <div class="word-context">上下文释义：${w.meaning}</div>
+                </div>
+            `).join('');
+
+            // Track looked up words
+            sentence.words.forEach(w => wordsLookedUp.add(w.word.toLowerCase()));
+
+            // Check if should show quiz notification
+            if (wordsLookedUp.size >= 3) {
+                setTimeout(() => {
+                    showAINotification(
+                        `💡 你查了${wordsLookedUp.size}个词了，要不要做一个小测验巩固一下？`,
+                        [
+                            { text: "开始测验", action: () => { hideNotification(); startQuiz(); } },
+                            { text: "稍后再说", action: () => hideNotification() }
+                        ]
+                    );
+                }, 2000);
+            }
+        }
+
+        function updateSentenceStructure(sentence) {
+            const structure = document.getElementById('sentenceStructure');
+            
+            if (sentence.structure.length === 0) {
+                structure.innerHTML = '<p style="color:var(--text-muted)">暂无结构分析</p>';
+                return;
+            }
+
+            const roleColors = {
+                subject: 'subject',
+                predicate: 'predicate',
+                object: 'object',
+                attribute: 'attribute',
+                adverbial: 'adverbial',
+                complement: 'complement'
+            };
+
+            const roleLabels = {
+                subject: '主语',
+                predicate: '谓语',
+                object: '宾语',
+                attribute: '定语',
+                adverbial: '状语',
+                complement: '表语'
+            };
+
+            structure.innerHTML = sentence.structure.map((item, idx) => {
+                const arrow = idx < sentence.structure.length - 1 ? '<span class="relation-arrow">→</span>' : '';
+                return `
+                    <span class="word-tag ${roleColors[item.role]}" title="${roleLabels[item.role]}">
+                        ${item.text}
+                    </span>${arrow}
+                `;
+            }).join('');
+        }
+
+        function updateAnalysisText(sentence) {
+            const text = document.getElementById('analysisText');
+            text.innerHTML = `
+                <h4>📝 语法解析</h4>
+                <p>${sentence.analysis}</p>
+            `;
+        }
+
+        function updateTranslation(sentence) {
+            const content = document.getElementById('translationContent');
+            content.textContent = sentence.translation;
+            content.classList.remove('show');
+        }
+
+        function updatePresetQuestions(sentence) {
+            const container = document.getElementById('presetQuestions');
+            let questions = [];
+
+            if (sentence.id === 4) {
+                questions = [
+                    "这个句子为什么用过去式？",
+                    "hallucinated在这里是什么意思？",
+                    "confidently怎么用？"
+                ];
+            } else if (sentence.id === 3) {
+                questions = [
+                    "这个句子用了什么语法？",
+                    "比较级是怎么构成的？"
+                ];
+            } else if (sentence.structure.length > 0) {
+                questions = [
+                    "帮我分析这个句子结构",
+                    "这个句子的主语是什么？",
+                    "有没有什么语法重点？"
+                ];
+            }
+
+            container.innerHTML = questions.map(q => 
+                `<button class="question-btn" onclick="askPresetQuestion('${q}')">❓ ${q}</button>`
+            ).join('');
+        }
+
+        // ============ Q&A Functions ============
+        function askPresetQuestion(question) {
+            addChatMessage(question, 'user');
+            
+            // Show typing indicator
+            const chatArea = document.getElementById('chatArea');
+            const typing = document.createElement('div');
+            typing.className = 'chat-message ai';
+            typing.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+            chatArea.appendChild(typing);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            // Simulate AI response
+            setTimeout(() => {
+                chatArea.removeChild(typing);
+                const response = qaResponses[question] || qaResponses.default;
+                addChatMessage(response, 'ai');
+            }, 1500);
+        }
+
+        function sendQuestion() {
+            const input = document.getElementById('qaInput');
+            const question = input.value.trim();
+            
+            if (!question) return;
+            
+            addChatMessage(question, 'user');
+            input.value = '';
+
+            // Show typing indicator
+            const chatArea = document.getElementById('chatArea');
+            const typing = document.createElement('div');
+            typing.className = 'chat-message ai';
+            typing.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+            chatArea.appendChild(typing);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            // Simulate AI response
+            setTimeout(() => {
+                chatArea.removeChild(typing);
+                addChatMessage("感谢你的提问！让我来帮你分析一下...如果你想要更详细的语法解析，可以点击上方的「句法分析」标签查看可视化结构图。", 'ai');
+            }, 1500);
+        }
+
+        function handleQAKeypress(event) {
+            if (event.key === 'Enter') {
+                sendQuestion();
+            }
+        }
+
+        function addChatMessage(text, type) {
+            const chatArea = document.getElementById('chatArea');
+            const msg = document.createElement('div');
+            msg.className = `chat-message ${type}`;
+            msg.innerHTML = `<div class="chat-bubble">${text}</div>`;
+            chatArea.appendChild(msg);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        // ============ Translation Toggle ============
+        function toggleTranslation() {
+            const content = document.getElementById('translationContent');
+            content.classList.toggle('show');
+        }
+
+        // ============ Hover Timer ============
+        function startHoverTimer(sentenceEl) {
+            cancelHoverTimer();
+            hoverTimer = setTimeout(() => {
+                const sentenceId = parseInt(sentenceEl.dataset.sentence);
+                if (!sentencesAnalyzed.has(sentenceId)) {
+                    showAINotification(
+                        "🔍 看起来你在这里停了一会儿，要不要我帮你分析一下？",
+                        [
+                            { text: "帮我分析", action: () => { hideNotification(); selectSentence(sentenceEl); } },
+                            { text: "继续阅读", action: () => hideNotification() }
+                        ]
+                    );
+                }
+            }, 3000);
+        }
+
+        function cancelHoverTimer() {
+            if (hoverTimer) {
+                clearTimeout(hoverTimer);
+                hoverTimer = null;
+            }
+        }
+
+        // ============ AI Notification ============
+        function showAINotification(message, actions) {
+            const notification = document.getElementById('aiNotification');
+            const body = document.getElementById('notificationBody');
+            const actionContainer = document.getElementById('notificationActions');
+            
+            body.textContent = message;
+            actionContainer.innerHTML = actions.map((a, idx) => 
+                `<button class="notification-btn ${idx === 0 ? 'primary' : 'secondary'}" onclick="(${a.action.toString()})()">${a.text}</button>`
+            ).join('');
+            
+            notification.classList.add('show');
+        }
+
+        function hideNotification() {
+            document.getElementById('aiNotification').classList.remove('show');
+        }
+
+        function analyzeHallucinatedSentence() {
+            hideNotification();
+            const sentenceEl = document.querySelector('[data-sentence="4"]');
+            if (sentenceEl) {
+                selectSentence(sentenceEl);
+                switchTab('analysis');
+            }
+        }
+
+        // ============ Progress ============
+        function updateProgress() {
+            const total = articleData.sentences.length;
+            const analyzed = sentencesAnalyzed.size;
+            const progress = Math.round((analyzed / total) * 100);
+            
+            readProgress = progress;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            document.getElementById('progressText').textContent = `${progress}%`;
+        }
+
+        // ============ Audio Player (Web Speech API) ============
+        let speechSynth = window.speechSynthesis;
+        let currentUtterance = null;
+
+        function toggleAudio() {
+            if (isPlaying) {
+                stopAudio();
+            } else {
+                playAudio();
+            }
+        }
+
+        function playAudio() {
+            isPlaying = true;
+            currentPlayingSentence = 0;
+            document.getElementById('playBtn').classList.add('playing');
+            document.getElementById('playBtn').textContent = '⏸';
+            
+            // Cancel any ongoing speech
+            speechSynth.cancel();
+            playNextSentence();
+        }
+
+        function playNextSentence() {
+            if (!isPlaying || currentPlayingSentence >= articleData.sentences.length) {
+                stopAudio();
+                return;
+            }
+
+            // Clear previous highlight
+            document.querySelectorAll('.sentence').forEach(s => s.classList.remove('reading'));
+            
+            // Highlight current sentence
+            const sentenceEl = document.querySelector(`[data-sentence="${currentPlayingSentence + 1}"]`);
+            if (sentenceEl) {
+                sentenceEl.classList.add('reading');
+                sentenceEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Speak the current sentence using Web Speech API
+            const text = articleData.sentences[currentPlayingSentence].text;
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            currentUtterance.lang = 'en-US';
+            currentUtterance.rate = audioSpeed;
+            currentUtterance.pitch = 1;
+
+            // Try to find a good English voice
+            const voices = speechSynth.getVoices();
+            const englishVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Female')) 
+                || voices.find(v => v.lang === 'en-US') 
+                || voices.find(v => v.lang.startsWith('en'));
+            if (englishVoice) {
+                currentUtterance.voice = englishVoice;
+            }
+
+            currentUtterance.onend = () => {
+                if (isPlaying) {
+                    currentPlayingSentence++;
+                    playNextSentence();
+                }
+            };
+
+            currentUtterance.onerror = (e) => {
+                if (e.error !== 'canceled') {
+                    console.warn('Speech error:', e.error);
+                    // Fallback: move to next sentence after delay
+                    if (isPlaying) {
+                        currentPlayingSentence++;
+                        setTimeout(() => playNextSentence(), 500);
+                    }
+                }
+            };
+
+            speechSynth.speak(currentUtterance);
+        }
+
+        function stopAudio() {
+            isPlaying = false;
+            speechSynth.cancel();
+            document.getElementById('playBtn').classList.remove('playing');
+            document.getElementById('playBtn').textContent = '▶';
+            document.querySelectorAll('.sentence').forEach(s => s.classList.remove('reading'));
+        }
+
+        function setSpeed(speed) {
+            audioSpeed = speed;
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
+            });
+        }
+
+        // ============ Quiz ============
+        function startQuiz() {
+            quizState = {
+                currentQuestion: 0,
+                answers: [],
+                showFeedback: false
+            };
+            
+            document.getElementById('quizOverlay').classList.add('show');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const quizCard = document.getElementById('quizCard');
+            const q = articleData.questions[quizState.currentQuestion];
+            const total = articleData.questions.length;
+            const current = quizState.currentQuestion;
+
+            // Progress dots
+            let dots = '';
+            for (let i = 0; i < total; i++) {
+                let className = 'quiz-progress-dot';
+                if (i === current) className += ' active';
+                else if (quizState.answers[i] !== undefined) {
+                    className += quizState.answers[i].correct ? ' correct' : ' wrong';
+                }
+                dots += `<div class="${className}"></div>`;
+            }
+
+            if (current >= total) {
+                renderReport();
+                return;
+            }
+
+            if (q.type === 'choice') {
+                quizCard.innerHTML = `
+                    <div class="quiz-header">
+                        <h2>📝 阅读理解练习</h2>
+                        <p>第 ${current + 1} / ${total} 题</p>
+                    </div>
+                    <div class="quiz-progress">${dots}</div>
+                    <div class="question-card">
+                        <div class="question-text">${q.question}</div>
+                        <div class="options">
+                            ${q.options.map((opt, idx) => `
+                                <div class="option ${quizState.showFeedback ? (idx === q.correct ? 'correct' : (quizState.answers[current]?.answer === idx ? 'wrong' : '')) : ''}" 
+                                     onclick="${!quizState.showFeedback ? `selectOption(${idx})` : ''}">
+                                    ${opt}
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${quizState.showFeedback ? `
+                            <div class="feedback ${quizState.answers[current].correct ? 'correct' : 'wrong'}">
+                                ${quizState.answers[current].correct ? '✅ 回答正确！' : '❌ 回答错误。'}<br>
+                                <strong>解析：</strong>${q.explanation}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="quiz-actions">
+                        ${quizState.showFeedback ? `
+                            <button class="quiz-btn primary" onclick="nextQuestion()">
+                                ${current < total - 1 ? '下一题' : '查看报告'}
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (q.type === 'translation') {
+                quizCard.innerHTML = `
+                    <div class="quiz-header">
+                        <h2>✍️ 翻译练习</h2>
+                        <p>第 ${current + 1} / ${total} 题</p>
+                    </div>
+                    <div class="quiz-progress">${dots}</div>
+                    <div class="question-card">
+                        <div class="question-text">${q.question}</div>
+                        <div style="background:var(--bg-light);padding:1rem;border-radius:8px;margin-bottom:1rem;font-style:italic;">
+                            "${q.sentence}"
+                        </div>
+                        ${q.hint ? `<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;">${q.hint}</p>` : ''}
+                        <textarea class="translation-input" id="translationAnswer" placeholder="请在这里输入你的翻译...">${quizState.answers[current]?.answer || ''}</textarea>
+                        ${quizState.showFeedback ? `
+                            <div class="feedback">
+                                <strong>参考译文：</strong>${q.answer}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="quiz-actions">
+                        ${quizState.showFeedback ? `
+                            <button class="quiz-btn primary" onclick="nextQuestion()">
+                                ${current < total - 1 ? '下一题' : '查看报告'}
+                            </button>
+                        ` : `
+                            <button class="quiz-btn secondary" onclick="submitTranslation()">提交翻译</button>
+                        `}
+                    </div>
+                `;
+            }
+        }
+
+        function selectOption(idx) {
+            const q = articleData.questions[quizState.currentQuestion];
+            quizState.answers[quizState.currentQuestion] = {
+                answer: idx,
+                correct: idx === q.correct
+            };
+            quizState.showFeedback = true;
+            renderQuestion();
+        }
+
+        function submitTranslation() {
+            const answer = document.getElementById('translationAnswer').value.trim();
+            quizState.answers[quizState.currentQuestion] = {
+                answer: answer,
+                correct: answer.length > 10 // Simplified check
+            };
+            quizState.showFeedback = true;
+            renderQuestion();
+        }
+
+        function nextQuestion() {
+            quizState.currentQuestion++;
+            quizState.showFeedback = false;
+            renderQuestion();
+        }
+
+        function renderReport() {
+            const quizCard = document.getElementById('quizCard');
+            const total = articleData.questions.length;
+            const correct = quizState.answers.filter(a => a && a.correct).length;
+            const score = Math.round((correct / total) * 100);
+
+            // Analyze weaknesses
+            const weaknesses = [];
+            if (quizState.answers[1] && !quizState.answers[1].correct) {
+                weaknesses.push("词汇理解：AI术语（如hallucination）的理解需要加强");
+            }
+            if (quizState.answers[0] && !quizState.answers[0].correct) {
+                weaknesses.push("细节定位：需要更仔细地捕捉文章关键数据");
+            }
+            if (quizState.answers[3] && !quizState.answers[3].correct) {
+                weaknesses.push("翻译能力：句子重组和意译技巧需要练习");
+            }
+
+            // Generate timeline
+            const timeline = [];
+            if (wordsLookedUp.size > 0) {
+                timeline.push({ time: "阅读中", content: `查看了 ${wordsLookedUp.size} 个核心词汇` });
+            }
+            if (sentencesAnalyzed.size > 0) {
+                timeline.push({ time: "分析中", content: `分析了 ${sentencesAnalyzed.size} 个句子结构` });
+            }
+            timeline.push({ time: "练习中", content: `完成了 ${total} 道阅读理解题` });
+
+            quizCard.innerHTML = `
+                <div class="report-card">
+                    <div class="report-score">
+                        <div class="score-circle" style="--score: ${score}">
+                            <div class="score-inner">${score}%</div>
+                        </div>
+                    </div>
+                    <h2 class="report-title">${score >= 80 ? '🎉 太棒了！' : score >= 60 ? '👍 不错的开始！' : '💪 继续加油！'}</h2>
+                    <p class="report-subtitle">你答对了 ${correct} / ${total} 道题</p>
+
+                    <div class="report-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${wordsLookedUp.size}</div>
+                            <div class="stat-label">查词次数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${sentencesAnalyzed.size}</div>
+                            <div class="stat-label">分析句子</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${readProgress}%</div>
+                            <div class="stat-label">阅读进度</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${Math.round((sentencesAnalyzed.size + wordsLookedUp.size) * 2)}</div>
+                            <div class="stat-label">学习积分</div>
+                        </div>
+                    </div>
+
+                    <canvas id="radarChart" class="radar-chart" width="300" height="300"></canvas>
+
+                    ${weaknesses.length > 0 ? `
+                        <div class="weakness-analysis">
+                            <h4>📋 薄弱项分析</h4>
+                            ${weaknesses.map(w => `<p>• ${w}</p>`).join('')}
+                            <p style="margin-top:0.5rem">💡 建议：明天将为你推荐更多相关训练内容</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="timeline">
+                        <h4>📅 今日学习记录</h4>
+                        ${timeline.map(item => `
+                            <div class="timeline-item">
+                                <span class="timeline-time">${item.time}</span>
+                                <span class="timeline-content">${item.content}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="quiz-actions">
+                        <button class="quiz-btn secondary" onclick="closeQuiz()">返回阅读</button>
+                        <button class="quiz-btn primary" onclick="closeQuiz()">继续学习</button>
+                    </div>
+                </div>
+            `;
+
+            // Draw radar chart after DOM update
+            setTimeout(() => drawRadarChart(), 100);
+        }
+
+        function drawRadarChart() {
+            const canvas = document.getElementById('radarChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 100;
+
+            // Data
+            const skills = [
+                { name: '词汇理解', value: 75 + Math.random() * 20 },
+                { name: '句法分析', value: 60 + Math.random() * 25 },
+                { name: '推理能力', value: 70 + Math.random() * 20 },
+                { name: '细节定位', value: 65 + Math.random() * 25 },
+                { name: '翻译能力', value: 55 + Math.random() * 30 }
+            ];
+
+            const angleStep = (Math.PI * 2) / skills.length;
+
+            // Clear
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = '#E5E7EB';
+            ctx.lineWidth = 1;
+            for (let i = 1; i <= 4; i++) {
+                ctx.beginPath();
+                for (let j = 0; j <= skills.length; j++) {
+                    const angle = j * angleStep - Math.PI / 2;
+                    const r = (radius * i) / 4;
+                    const x = centerX + Math.cos(angle) * r;
+                    const y = centerY + Math.sin(angle) * r;
+                    if (j === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            // Draw axes
+            skills.forEach((skill, i) => {
+                const angle = i * angleStep - Math.PI / 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius);
+                ctx.stroke();
+
+                // Labels
+                const labelX = centerX + Math.cos(angle) * (radius + 25);
+                const labelY = centerY + Math.sin(angle) * (radius + 25);
+                ctx.fillStyle = '#6B7280';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(skill.name, labelX, labelY);
+            });
+
+            // Draw data
+            ctx.beginPath();
+            skills.forEach((skill, i) => {
+                const angle = i * angleStep - Math.PI / 2;
+                const r = (skill.value / 100) * radius;
+                const x = centerX + Math.cos(angle) * r;
+                const y = centerY + Math.sin(angle) * r;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+            ctx.fill();
+            ctx.strokeStyle = '#F59E0B';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw points
+            skills.forEach((skill, i) => {
+                const angle = i * angleStep - Math.PI / 2;
+                const r = (skill.value / 100) * radius;
+                const x = centerX + Math.cos(angle) * r;
+                const y = centerY + Math.sin(angle) * r;
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#F59E0B';
+                ctx.fill();
+            });
+        }
+
+        function closeQuiz() {
+            document.getElementById('quizOverlay').classList.remove('show');
+        }
+
+        // ============ Profile ============
+        function showProfile() {
+            document.getElementById('profileModal').classList.add('show');
+        }
+
+        function closeProfile() {
+            document.getElementById('profileModal').classList.remove('show');
+        }
+
+        // Close modals on outside click
+        document.getElementById('profileModal').addEventListener('click', function(e) {
+            if (e.target === this) closeProfile();
+        });
+
+        document.getElementById('quizOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeQuiz();
+        });
+    </script>
+</body>
+</html>
